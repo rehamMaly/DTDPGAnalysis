@@ -19,6 +19,9 @@
 <use name="TrackingTools/TransientTrack"/>
 <use name="CommonTools/UtilAlgos"/>
 <use name="SimDataFormats/DigiSimLinks"/>
+<use name="Geometry/RPCGeometry"/>
+<use name="DataFormats/GeometryVector"/>
+<use name="Geometry/CommonDetUnit"/>
 <flags   EDM_PLUGIN="1"/>
 
 
