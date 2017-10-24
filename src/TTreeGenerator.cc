@@ -83,6 +83,25 @@
 #include "DataFormats/RPCDigi/interface/RPCDigi.h"
 #include <DataFormats/MuonData/interface/MuonDigiCollection.h>
 
+//Reham
+//for RPC Geometry
+
+#include "Geometry/RPCGeometry/interface/RPCGeometry.h"
+#include "Geometry/RPCGeometry/interface/RPCChamber.h"
+#include "Geometry/RPCGeometry/interface/RPCRoll.h"
+#include "Geometry/CommonDetUnit/interface/TrackingGeometry.h" //from CMSSW/​Geometry/​RPCGeometry/​interface/​RPCGeometry.h
+#include "Geometry/RPCGeometry/interface/RPCGeomServ.h"
+#include "DataFormats/Common/interface/Handle.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "Geometry/Records/interface/MuonGeometryRecord.h"
+#include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/GeometryVector/interface/GlobalVector.h"
+#include "DataFormats/GeometryVector/interface/LocalVector.h"
+#include "DataFormats/GeometryVector/interface/PV3DBase.h"
+#include "DataFormats/GeometryVector/interface/Vector3DBase.h"
+#include "DataFormats/GeometryVector/interface/Point3DBase.h" //definition of minus between two global vectors
+#include "DataFormats/GeometryVector/interface/Basic3DVector.h" //definition of minus between two global vectors
+
 #include <iostream>
 #include <vector>
 #include "TMath.h"
@@ -222,7 +241,14 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
    context.get<MuonGeometryRecord>().get(dtGeomH);
    const DTGeometry* dtGeom_ = dtGeomH.product();
 
-
+  //Reham
+   //RPC Geometry 
+  //==============
+  
+  edm::ESHandle<RPCGeometry> rpcGeom;
+  context.get<MuonGeometryRecord>().get(rpcGeom);
+  const auto rpcGeom_ = rpcGeom;
+	
   //retrieve the beamspot info
   if(!localDTmuons_)  
   {
@@ -387,6 +413,10 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
 
   // RPC
   if(!localDTmuons_) fill_rpc_variables(event,rpcHits);
+	
+ //Reham
+  //Probe_TwinMux_Segments 
+   Probe_TwinMux_segment(event,rpcHits,rpcGeom_);	
   
    analyzeBMTF(event);
 
@@ -957,6 +987,218 @@ void TTreeGenerator::fill_rpc_variables(const edm::Event &e, edm::Handle<RPCRecH
   return;
 }
 
+  //////////////////////////////// NEW TWO LOOPS TO BUILD RPC SEGMENT FROM 2 HITS IN LAYER 1 & 2 IN STATION 1 & 2 /////////////////////////////////
+
+//Reham
+
+  void TTreeGenerator::Probe_TwinMux_segment(const edm::Event &e, edm::Handle<RPCRecHitCollection> rpcrechits, const auto rpcGeom_){
+
+ // //Build segment from 2 RPC hits
+ //  //=============================
+
+  int N_RPCRecHits=0;
+  float local_distance_x =-9999;
+  double local_distance = -9999;
+  double global_distance_x =-9999;
+  double global_distance = -9999;
+  float deltaphi_globalpoints = -9999;
+  float deltaphi_globalpoints2_rad = -9999;
+  float deltaphi_globalpoints2_degree = -9999;
+  double RpcRecHitslocalpoint1_in_surface2_Z = -9999;
+  double global_distance_from_local_surface2_x =-9999;
+  double gp_avrg_x=-9999;
+  double gp_avrg_y=-9999;
+  double gp_avrg_z=-9999;
+  double gp_avrg_phi_rad = -99;
+  double gp_avrg_phi_degree = -99;
+  double gp_avrg_phi_shifted_degree = -9999;
+  double gp_avrg_phi_shifted_rad = -9999;
+  double lp_avrg_x=-9999;
+  double lp_avrg_y=-9999;
+  double lp_avrg_z=-9999;
+  double lp_avrg_phi_rad = -99; 
+  double delta_x_local = -9999;
+  double d = -9999;
+  //double value = -9999;
+  double value1 = -9999;
+  double bending_phi_local = -9999;
+  double bending_phi_local_mod =-9999;
+  double bending_phi_local_test =-9999;
+
+  
+   for(auto RpcRecHits1 = rpcrechits->begin(); RpcRecHits1 < rpcrechits->end(); RpcRecHits1++)
+     {
+
+       N_RPCRecHits++;
+
+       cout<<"RpcRecHits => Region = "<<RpcRecHits1->rpcId().region()<<" ,Ring = "<<RpcRecHits1->rpcId().ring()<<" ,station ="<<RpcRecHits1->rpcId().station()<<" ,sector ="<<RpcRecHits1->rpcId().sector()<<" ,Layer ="<<RpcRecHits1->rpcId().layer()<<" ,roll ="<<RpcRecHits1->rpcId().roll()<<endl;
+      
+       const RPCDetId rpcId1 = RpcRecHits1->rpcId();
+       cout<<"rpcId1 = "<<rpcId1<<endl;
+        const auto roll1 = rpcGeom_->roll(rpcId1);
+        cout<<"roll1 = "<<roll1<<endl;
+        if(roll1 == 0)continue;
+        const BoundPlane & RPCSurface1 = roll1->surface();
+        cout<<"RPCSurface1 = "<< &RPCSurface1<<endl;
+	GlobalPoint RpcRecHitsGlobalpoint1 = RPCSurface1.toGlobal(RpcRecHits1->localPosition());
+      
+       cout<<"RPC1 local position before convert = "<<RpcRecHits1->localPosition().x()<<" ,"<<RpcRecHits1->localPosition().y()<<" ,"<<RpcRecHits1->localPosition().z()<<endl;
+       cout<<"RPC1 global point = "<<RpcRecHitsGlobalpoint1.x()<<" ,"<<RpcRecHitsGlobalpoint1.y()<<" ,"<<RpcRecHitsGlobalpoint1.z()<<endl;
+																     
+       for(auto RpcRecHits2 = (RpcRecHits1 + 1); RpcRecHits2 < rpcrechits->end(); RpcRecHits2++)
+	 {	 
+	   
+	   const RPCDetId rpcId2 = RpcRecHits2->rpcId();
+	   cout<<"rpcId2 = "<<rpcId2<<endl;
+	   const auto roll2 = rpcGeom_->roll(rpcId2);
+	   cout<<"roll2 = "<<roll2<<endl;
+	   if(roll2 == 0)continue;
+	   const BoundPlane & RPCSurface2 = roll2->surface();
+	   cout<<"RPCSurface2 = "<< &RPCSurface2<<endl;
+	   
+      	  LocalPoint RpcRecHitslocalpoint1_in_surface2 = RPCSurface2.toLocal(RpcRecHitsGlobalpoint1);
+      	  GlobalPoint RpcRecHitsGlobalpoint2 = RPCSurface2.toGlobal(RpcRecHits2->localPosition());
+ 	  GlobalPoint RpcRecHits1_Globalpoint_from_surface2 = RPCSurface2.toGlobal(RpcRecHitslocalpoint1_in_surface2);
+	  
+      	  cout<<"RPC2 local position = "<<RpcRecHits2->localPosition().x()<<" ,"<<RpcRecHits2->localPosition().y()<<" ,"<<RpcRecHits2->localPosition().z()<<endl;
+ 	  cout<<"RPC2 global position = "<<RpcRecHitsGlobalpoint2.x()<<" ,"<<RpcRecHitsGlobalpoint2.y()<<" ,"<<RpcRecHitsGlobalpoint2.z()<<endl;
+      	  cout<<"RPC1 local position in RPC2 frame = "<<RpcRecHitslocalpoint1_in_surface2.x()<<" ,"<<RpcRecHitslocalpoint1_in_surface2.y()<<" ,"<<RpcRecHitslocalpoint1_in_surface2.z()<<endl;
+
+      	  //same Region =0, same ring & sector & station & BX
+	  
+      	  if( (RpcRecHits1->BunchX() == RpcRecHits2->BunchX()) && RpcRecHits1->rpcId().region() == 0 && RpcRecHits2->rpcId().region()== 0 && (RpcRecHits1->rpcId().ring() == RpcRecHits2->rpcId().ring()) && (RpcRecHits1->rpcId().sector() == RpcRecHits2->rpcId().sector()) /*&& (RPCRecHits1->rpcId().station() == RPCRecHits2->rpcId().station())*/ ) {
+	    
+      	    if ( RpcRecHits1->rpcId().station() == 1 && RpcRecHits2->rpcId().station() == 1){ //station 1 
+      	      if( (RpcRecHits1->rpcId().layer() ==1 && RpcRecHits2->rpcId().layer() ==2) || (RpcRecHits1->rpcId().layer() ==2 && RpcRecHits2->rpcId().layer() ==1) ){
+		
+      		cout<<"RPC chamber1=> BX1= "<< RpcRecHits1->BunchX()<<" ,region1 = "<<RpcRecHits1->rpcId().region() <<" , ring1 = "<<RpcRecHits1->rpcId().ring()<<" ,sector1 = "
+      		    <<RpcRecHits1->rpcId().sector()<<" ,station1 = "<<RpcRecHits1->rpcId().station()<<" ,layer1 ="<<RpcRecHits1->rpcId().layer()<<endl;
+		
+      		cout<<"RPC chamber2=> BX2= "<< RpcRecHits2->BunchX()<<" ,region2 = "<<RpcRecHits2->rpcId().region() <<" , ring2 = "<<RpcRecHits2->rpcId().ring()<<" ,sector2 = "
+      		    <<RpcRecHits2->rpcId().sector()<<" ,station2 = "<<RpcRecHits2->rpcId().station()<<" ,layer2 ="<<RpcRecHits2->rpcId().layer()<<endl;
+		
+      		//distance in local frame of chamber 2  (delta_x)
+      		//===============================================
+	     
+      		local_distance_x = RpcRecHits2->localPosition().x() - RpcRecHitslocalpoint1_in_surface2.x(); //without fabs to get gauss distribution
+      		//h_local_distance_x->Fill(local_distance_x);		
+      		local_distance = ((RpcRecHits2->localPosition()) - (RpcRecHitslocalpoint1_in_surface2)).mag();		
+      		cout<<"local_distance_mag = "<<local_distance<<endl;		
+      		cout<<"local_distance between 2 RPCRechits in local frame of chamber2 = "<<local_distance_x<<endl;		
+      		RpcRecHitslocalpoint1_in_surface2_Z = RpcRecHitslocalpoint1_in_surface2.z();		
+      		cout<<"RpcRecHitslocalpoint1_in_surface2_Z = "<<RpcRecHitslocalpoint1_in_surface2_Z<<endl;
+      		global_distance_x = RpcRecHitsGlobalpoint2.x() - RpcRecHitsGlobalpoint1.x(); //without fabs
+      		global_distance = ((RpcRecHitsGlobalpoint2) - (RpcRecHitsGlobalpoint1)).mag(); //magnitude is invariant in any fram (local mag = global mag)
+      		global_distance_from_local_surface2_x = fabs (RpcRecHitsGlobalpoint2.x() - RpcRecHits1_Globalpoint_from_surface2.x());
+ 		cout<<"global_distance_mag = "<<global_distance<<endl;
+ 		cout<<"global_distance x between 2 RPCRechits in global frame of CMS = "<<global_distance_x<<endl;
+      		cout<<"global_distance_from_local_surface2_x ="<<global_distance_from_local_surface2_x<<endl;
+		
+      		//delta phi between two hits in global points
+      		//============================================
+		
+      		deltaphi_globalpoints = ((RpcRecHitsGlobalpoint2) - (RpcRecHitsGlobalpoint1)).phi();
+      		deltaphi_globalpoints2_rad = (RpcRecHitsGlobalpoint2.phi()) - (RpcRecHitsGlobalpoint1.phi());
+      		deltaphi_globalpoints2_degree = (RpcRecHitsGlobalpoint2.phi().degrees()) - (RpcRecHitsGlobalpoint1.phi().degrees());
+      		//h_deltaphi_globalpoints->Fill(deltaphi_globalpoints);
+      		//h_deltaphi_globalpoints2_rad->Fill(deltaphi_globalpoints2_rad);
+      		//h_deltaphi_globalpoints2_degree->Fill(deltaphi_globalpoints2_degree);
+
+ 		cout<<"deltaphi_globalpoints = "<<deltaphi_globalpoints<<endl;
+ 		cout<<"deltaphi_globalpoints2_rad = "<<deltaphi_globalpoints2_rad<<endl;
+ 		cout<<"deltaphi_globalpoints2_degree = "<<deltaphi_globalpoints2_degree<<endl;
+		
+		
+      		//This part to calculate global phi_avg and bending phi
+      		//=====================================================
+		
+      		//phi_avg
+      		//=======
+		
+      		gp_avrg_x = ((RpcRecHitsGlobalpoint2.x()) + (RpcRecHitsGlobalpoint1.x()))/2;
+      		gp_avrg_y = ((RpcRecHitsGlobalpoint2.y()) + (RpcRecHitsGlobalpoint1.y()))/2;
+      		gp_avrg_z = ((RpcRecHitsGlobalpoint2.z()) + (RpcRecHitsGlobalpoint1.z()))/2;
+      		GlobalVector gp_avrg (gp_avrg_x, gp_avrg_y, gp_avrg_z);
+      		cout<<"gp_avrg = ("<<gp_avrg_x<<" ,"<<gp_avrg_y<<" ,"<<gp_avrg_z<<")"<<endl;
+      		cout<<"Vector gp_avrg = ( "<<gp_avrg_x<<" ,"<<gp_avrg_y<<", "<<gp_avrg_z<<")"<<endl;		
+ 		gp_avrg_phi_rad = gp_avrg.phi();
+ 		gp_avrg_phi_degree = gp_avrg.phi().degrees();
+
+ 		avg_phi_rad.push_back(gp_avrg_phi_rad);
+ 		avg_phi_degree.push_back(gp_avrg_phi_degree);
+
+ 		//h_gp_avg_phi_rad->Fill(gp_avrg_phi_rad);
+ 		//h_gp_avg_phi_degree->Fill(gp_avrg_phi_degree);
+ 		cout<<"gp_avrg_phi_rad = "<<gp_avrg_phi_rad<<endl;
+ 		cout<<"gp_avrg_phi_degree = "<<gp_avrg_phi_degree<<endl;
+
+ 		//modfiy phi_avg to same zero "sector1"
+
+ 		gp_avrg_phi_shifted_degree = gp_avrg_phi_degree - (( RpcRecHits1->rpcId().sector() -1)*30 ); //////
+ 		gp_avrg_phi_shifted_rad = gp_avrg_phi_rad - (( RpcRecHits1->rpcId().sector() -1)*((30*22)/(7*180)) );
+ 		//h_gp_avg_phi_shifted_degree->Fill(gp_avrg_phi_shifted_degree);
+ 		//h_gp_avg_phi_shifted_rad->Fill(gp_avrg_phi_shifted_rad);
+
+ 		avg_phi_shifted_rad.push_back(gp_avrg_phi_shifted_rad);
+ 		avg_phi_shifted_degree.push_back(gp_avrg_phi_shifted_degree);
+
+ 		cout<<"gp_avrg_phi_shifted_degree = "<<gp_avrg_phi_shifted_degree<<endl;
+ 		cout<<"gp_avrg_phi_shifted_rad = "<<gp_avrg_phi_shifted_rad<<endl;
+
+      		//phi_avg in local 
+		
+      		lp_avrg_x = ((RpcRecHits2->localPosition().x()) + (RpcRecHitslocalpoint1_in_surface2.x()))/2;
+      		lp_avrg_y = ((RpcRecHits2->localPosition().y()) + (RpcRecHitslocalpoint1_in_surface2.y()))/2;
+      		lp_avrg_z = ((RpcRecHits2->localPosition().z()) + (RpcRecHitslocalpoint1_in_surface2.z()))/2;
+
+      		LocalVector lp_avrg (lp_avrg_x, lp_avrg_y, lp_avrg_z);
+
+      		 lp_avrg_phi_rad = lp_avrg.phi();
+      		 //lp_avrg_phi_degree = lp_avrg.phi().degrees();
+
+ 		 cout<<"lp_avrg_phi_rad = "<<lp_avrg_phi_rad<<endl;
+		
+      		//bending phi
+      		//===========
+		
+      		delta_x_local = RpcRecHits2->localPosition().x() - RpcRecHitslocalpoint1_in_surface2.x();
+      		//delta_x_local = RpcRecHitsGlobalpoint2.x() - RpcRecHitsGlobalpoint1.x();
+      		d =  RpcRecHitslocalpoint1_in_surface2_Z ;
+		
+      		cout<<"delta_x_local = "<<delta_x_local<<endl;
+      		cout<<"d = "<<d<<endl;
+ 		value1 = atan(delta_x_local/d);
+      		 cout<<"value1_atan = "<<value1<<endl;		
+      		 bending_phi_local = value1 - gp_avrg_phi_rad;
+      		 bending_phi_local_mod = value1 - gp_avrg_phi_shifted_rad;
+      		 bending_phi_local_test = value1 - lp_avrg_phi_rad;
+
+ 		 phi_b.push_back(bending_phi_local);
+ 		 phi_b_shifted.push_back(bending_phi_local_mod);
+		   
+ 		 cout<<"bending_phi_local = "<<bending_phi_local<<endl;
+ 		 cout<<"bending_phi_local_mod = "<<bending_phi_local_mod<<endl;
+ 		 cout<<"bending_phi_local_test = "<<bending_phi_local_test<<endl;
+		 
+      		 //h_bending_phi_local->Fill(bending_phi_local);
+      		 //h_bending_phi_local_mod->Fill(bending_phi_local_mod);
+      		 //h_bending_phi_local_test->Fill(bending_phi_local_test); 				
+		
+      	      }
+      	    }
+      	  }							       
+	 }//2
+      
+     }//1
+
+   cout<<"N_RPCRecHits = "<<N_RPCRecHits<<endl;
+
+     return;
+ }//end of Probe_TwinMux_segment function
+  
+  ///////////////////////////////////////////////
+
+
 void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
 {
   edm::Handle<RPCRecHitCollection> UnpackingRpcHits;
@@ -1400,6 +1642,17 @@ void TTreeGenerator::beginJob()
    tree_->Branch("RpcRecHitTwinMuxRoll", &RpcRechit_TwinMux_roll);
    tree_->Branch("RpcRecHitTwinMuxRing", &RpcRechit_TwinMux_ring);
 
+   //Reham
+   //probe TwinMux Segments
+  
+   tree_->Branch("avg_phi_rad", &avg_phi_rad);
+   tree_->Branch("avg_phi_degree" , &avg_phi_degree);
+   tree_->Branch("avg_phi_shifted_rad" , &avg_phi_shifted_rad);
+   tree_->Branch("avg_phi_shifted_degree" , &avg_phi_shifted_degree);
+   tree_->Branch("phi_b" , &phi_b);
+   tree_->Branch("phi_b_shifted" , &phi_b_shifted);	
+	
+	
   return;
 }
 
@@ -1631,6 +1884,16 @@ inline void TTreeGenerator::clear_Arrays()
    RpcRechit_TwinMux_subsector.clear();
    RpcRechit_TwinMux_roll.clear();
    RpcRechit_TwinMux_ring.clear();
+	
+   //Reham
+   //probe TwinMux Segments
+   
+   avg_phi_rad.clear();
+   avg_phi_degree.clear();
+   avg_phi_shifted_rad.clear();
+   avg_phi_shifted_degree.clear();
+   phi_b.clear();
+   phi_b_shifted.clear();	
   
   return;
 }
