@@ -10,7 +10,7 @@ cd CMSSW_9_2_10/src/
 
 cmsenv
 
-git clone https://github.com/cmsdtoffline/DTDPGAnalysis UserCode/DTDPGAnalysis
+git clone https://github.com/rehamMaly/DTDPGAnalysis.git UserCode/DTDPGAnalysis
 
 scramv1 b -j 5
 
