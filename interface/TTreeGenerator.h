@@ -63,6 +63,7 @@ private:
   void fill_gt_variables(edm::Handle<L1GlobalTriggerReadoutRecord> gtrr, const L1GtTriggerMenu* menu);
   void fill_hlt_variables(const edm::Event& e, edm::Handle<edm::TriggerResults> hltresults);
   void fill_rpc_variables(const edm::Event &e, edm::Handle<RPCRecHitCollection> rpcrechits);
+  void Probe_TwinMux_segment(const edm::Event &e, edm::Handle<RPCRecHitCollection> rpcrechits, const auto rpcGeom_); //Reham
   void fill_dtphi_info(const DTChamberRecSegment2D* phiSeg,const GeomDet* geomDet);
   void fill_dtz_info(const DTSLRecSegment2D* zSeg, const GeomDet* geomDet);
   void analyzeBMTF(const edm::Event& e);
