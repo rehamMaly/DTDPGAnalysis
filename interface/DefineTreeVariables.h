@@ -252,3 +252,13 @@ std::vector<int> RpcRechit_TwinMux_layer;
 std::vector<int> RpcRechit_TwinMux_subsector;
 std::vector<int> RpcRechit_TwinMux_roll;
 std::vector<int> RpcRechit_TwinMux_ring;
+
+//Reham
+//probe TwinMux Segments
+
+std::vector<double>avg_phi_rad;
+std::vector<double>avg_phi_degree;
+std::vector<double>avg_phi_shifted_rad;
+std::vector<double>avg_phi_shifted_degree;
+std::vector<double>phi_b;
+std::vector<double>phi_b_shifted;
